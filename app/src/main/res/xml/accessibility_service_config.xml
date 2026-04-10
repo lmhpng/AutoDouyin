@@ -4,5 +4,4 @@
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault"
     android:canPerformGestures="true"
-    android:canRetrieveWindowContent="true"
-    android:description="抖音自动刷视频助手" />
+    android:canRetrieveWindowContent="true"/>
