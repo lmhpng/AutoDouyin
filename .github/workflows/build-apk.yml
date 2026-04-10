@@ -19,6 +19,8 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4' # 强制使用兼容的 8.4 版本
 
       - name: Build Debug APK
         run: gradle assembleDebug
