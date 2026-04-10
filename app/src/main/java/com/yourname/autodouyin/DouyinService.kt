@@ -50,7 +50,7 @@ class DouyinService : AccessibilityService() {
                     doubleTapLike()
                 }
 
-                // 执行随机观看纯视频 3-15 秒钟
+                // 执行随机观看纯视频 4-15 秒钟
                 val watchTime = Random.nextLong(3000, 15000)
                 delay(watchTime)
 
@@ -124,8 +124,8 @@ class DouyinService : AccessibilityService() {
         val height = metrics.heightPixels.toFloat()
 
         // 依然保持你原本专属的右侧偏上点赞区域
-        val x1 = width * Random.nextDouble(0.80, 0.95).toFloat()
-        val y1 = height * Random.nextDouble(0.12, 0.20).toFloat()
+        val x1 = width * Random.nextDouble(0.85, 0.95).toFloat()
+        val y1 = height * Random.nextDouble(0.18, 0.30).toFloat()
         
         val path1 = Path().apply { moveTo(x1, y1) }
         val path2 = Path().apply { moveTo(x1 + Random.nextInt(-25, 25), y1 + Random.nextInt(-25, 25)) }
