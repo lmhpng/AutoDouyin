@@ -29,28 +29,30 @@ class DouyinService : AccessibilityService() {
         
         job = scope.launch {
             while (isActive) {
-                // 1. 向上滑动
+                // 1. 向上滑动到新视频
                 swipeUp()
                 
-                // 2. 等待 UI 加载出来 (稍微多等一点，让系统有时间读到广告标签)
-                delay(Random.nextLong(1500, 2500))
+                // 2. 预留一点 UI 加载时间 (1-1.5秒)，用来读取屏幕文字
+                delay(Random.nextLong(1000, 1500))
 
-                // 3. 智能检测全屏广告/团购/直播
+                // 3. 智能检测：是不是广告、直播或团购
                 if (isAdOrLive()) {
-                    // 如果发现是广告，直接跳过当前循环，马上滑走！
+                    // 如果是广告：不点赞，不观看，立即进入下一次循环（即再次上滑）
                     continue 
                 }
 
-                // 4. 你的 10% 概率双击点赞
+                // --- 到这里说明是普通视频，开始正常观看逻辑 ---
+
+                // 4. 执行你的 10% 概率双击点赞
                 if (Random.nextFloat() < 0.10f) {
                     doubleTapLike()
                 }
 
-                // 5. 正常观看视频
+                // 5. 【关键修复】普通视频必须看完设定的观看时间 (3-15秒)
                 val watchTime = Random.nextLong(3000, 15000)
                 delay(watchTime)
 
-                // 6. 15% 概率休息
+                // 6. 15% 概率随机休息
                 if (Random.nextFloat() < 0.15f) {
                     delay(Random.nextLong(10000, 30000))
                 }
@@ -58,34 +60,24 @@ class DouyinService : AccessibilityService() {
         }
     }
 
-    // ========== “透视眼”功能：扫描屏幕文字 ==========
     private fun isAdOrLive(): Boolean {
         val rootNode = rootInActiveWindow ?: return false
-        // 遇到这些词直接滑走
         val badWords = listOf("广告", "跳过", "直播中", "点击进入", "去购买", "团购", "立即下载", "查看详情")
         return searchNodesForText(rootNode, badWords)
     }
 
     private fun searchNodesForText(node: AccessibilityNodeInfo?, keywords: List<String>): Boolean {
         if (node == null) return false
-        
         val text = node.text?.toString() ?: ""
         val desc = node.contentDescription?.toString() ?: ""
-        
         for (word in keywords) {
-            if (text.contains(word) || desc.contains(word)) {
-                return true
-            }
+            if (text.contains(word) || desc.contains(word)) return true
         }
-        
         for (i in 0 until node.childCount) {
-            if (searchNodesForText(node.getChild(i), keywords)) {
-                return true
-            }
+            if (searchNodesForText(node.getChild(i), keywords)) return true
         }
         return false
     }
-    // ====================================================
 
     private fun stopAutoSwipe() {
         job?.cancel()
@@ -95,21 +87,17 @@ class DouyinService : AccessibilityService() {
         val metrics = resources.displayMetrics
         val width = metrics.widthPixels.toFloat()
         val height = metrics.heightPixels.toFloat()
-
         val startX = width / 2f
         val startY = height * 0.7f
         val endX = width / 2f
         val endY = height * 0.3f
-
         val path = Path().apply {
             moveTo(startX, startY)
             lineTo(endX, endY)
         }
-
         val duration = Random.nextLong(200, 500)
         val stroke = GestureDescription.StrokeDescription(path, 0, duration)
         val gesture = GestureDescription.Builder().addStroke(stroke).build()
-        
         dispatchGesture(gesture, null, null)
     }
 
@@ -117,18 +105,13 @@ class DouyinService : AccessibilityService() {
         val metrics = resources.displayMetrics
         val width = metrics.widthPixels.toFloat()
         val height = metrics.heightPixels.toFloat()
-
-        // 恢复为你原本专属的点赞区域 (右上角偏下)
         val x1 = width * Random.nextDouble(0.80, 0.95).toFloat()
         val y1 = height * Random.nextDouble(0.12, 0.20).toFloat()
-        
         val path1 = Path().apply { moveTo(x1, y1) }
         val path2 = Path().apply { moveTo(x1 + Random.nextInt(-25, 25), y1 + Random.nextInt(-25, 25)) }
-
         val builder = GestureDescription.Builder()
         builder.addStroke(GestureDescription.StrokeDescription(path1, 0, 50))
         builder.addStroke(GestureDescription.StrokeDescription(path2, 150, 50))
-
         dispatchGesture(builder.build(), null, null)
     }
 
