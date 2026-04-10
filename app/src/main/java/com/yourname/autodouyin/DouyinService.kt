@@ -29,30 +29,32 @@ class DouyinService : AccessibilityService() {
         
         job = scope.launch {
             while (isActive) {
-                // 1. 向上滑动到新视频
+                // 第一步：向上滑到一个新视频
                 swipeUp()
                 
-                // 2. 预留一点 UI 加载时间 (1-1.5秒)，用来读取屏幕文字
-                delay(Random.nextLong(1000, 1500))
+                // 第二步：雷打不动地花费 2 秒钟等待，让画面和文字完全加载出来
+                delay(2000)
 
-                // 3. 智能检测：是不是广告、直播或团购
+                // 第三步：判断是不是广告或者直播
                 if (isAdOrLive()) {
-                    // 如果是广告：不点赞，不观看，立即进入下一次循环（即再次上滑）
+                    // 如果有“广告”或“直播中”这些字词，直接进入下一次循环（即马上再执行一次上滑）
                     continue 
                 }
 
-                // --- 到这里说明是普通视频，开始正常观看逻辑 ---
-
-                // 4. 执行你的 10% 概率双击点赞
+                // ==========================================
+                // 第四步：如果没有这些字词，说明是纯视频，开始执行观看和点赞策略
+                // ==========================================
+                
+                // 执行 10% 概率的双击点赞策略
                 if (Random.nextFloat() < 0.10f) {
                     doubleTapLike()
                 }
 
-                // 5. 【关键修复】普通视频必须看完设定的观看时间 (3-15秒)
+                // 执行随机观看纯视频 3-15 秒钟
                 val watchTime = Random.nextLong(3000, 15000)
                 delay(watchTime)
 
-                // 6. 15% 概率随机休息
+                // 保留之前的随机休息策略：15% 的概率随机休息 10-30 秒，防封号
                 if (Random.nextFloat() < 0.15f) {
                     delay(Random.nextLong(10000, 30000))
                 }
@@ -60,21 +62,32 @@ class DouyinService : AccessibilityService() {
         }
     }
 
+    // ========== 极简精准词库检测 ==========
     private fun isAdOrLive(): Boolean {
         val rootNode = rootInActiveWindow ?: return false
-        val badWords = listOf("广告", "跳过", "直播中", "点击进入", "去购买", "团购", "立即下载", "查看详情")
+        
+        // 按照你的要求，严格缩减字词，只抓最明确的“广告”和“直播”，防止误伤正常视频
+        val badWords = listOf("广告", "直播中")
         return searchNodesForText(rootNode, badWords)
     }
 
     private fun searchNodesForText(node: AccessibilityNodeInfo?, keywords: List<String>): Boolean {
         if (node == null) return false
+        
         val text = node.text?.toString() ?: ""
         val desc = node.contentDescription?.toString() ?: ""
+        
         for (word in keywords) {
-            if (text.contains(word) || desc.contains(word)) return true
+            // 只要包含敏感词，立刻判定为广告/直播
+            if (text.contains(word) || desc.contains(word)) {
+                return true
+            }
         }
+        
         for (i in 0 until node.childCount) {
-            if (searchNodesForText(node.getChild(i), keywords)) return true
+            if (searchNodesForText(node.getChild(i), keywords)) {
+                return true
+            }
         }
         return false
     }
@@ -87,17 +100,21 @@ class DouyinService : AccessibilityService() {
         val metrics = resources.displayMetrics
         val width = metrics.widthPixels.toFloat()
         val height = metrics.heightPixels.toFloat()
+
         val startX = width / 2f
         val startY = height * 0.7f
         val endX = width / 2f
         val endY = height * 0.3f
+
         val path = Path().apply {
             moveTo(startX, startY)
             lineTo(endX, endY)
         }
+
         val duration = Random.nextLong(200, 500)
         val stroke = GestureDescription.StrokeDescription(path, 0, duration)
         val gesture = GestureDescription.Builder().addStroke(stroke).build()
+        
         dispatchGesture(gesture, null, null)
     }
 
@@ -105,13 +122,18 @@ class DouyinService : AccessibilityService() {
         val metrics = resources.displayMetrics
         val width = metrics.widthPixels.toFloat()
         val height = metrics.heightPixels.toFloat()
+
+        // 依然保持你原本专属的右侧偏上点赞区域
         val x1 = width * Random.nextDouble(0.80, 0.95).toFloat()
         val y1 = height * Random.nextDouble(0.12, 0.20).toFloat()
+        
         val path1 = Path().apply { moveTo(x1, y1) }
         val path2 = Path().apply { moveTo(x1 + Random.nextInt(-25, 25), y1 + Random.nextInt(-25, 25)) }
+
         val builder = GestureDescription.Builder()
         builder.addStroke(GestureDescription.StrokeDescription(path1, 0, 50))
         builder.addStroke(GestureDescription.StrokeDescription(path2, 150, 50))
+
         dispatchGesture(builder.build(), null, null)
     }
 
